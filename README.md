@@ -11,6 +11,24 @@ A MATLAB-based simulation system for studying multimodal perception and integrat
 - Comprehensive data visualization
 - Multi-session support for unimodal experiments
 
+## Analysis Features
+
+### Unimodal Analysis
+- Session-wise psychometric curve fitting
+- Parameter distribution analysis:
+  - Threshold (α)
+  - Slope (β)
+  - Guess Rate (γ)
+  - Lapse Rate (λ)
+- Cross-session comparisons
+- Statistical summaries
+
+### Multimodal Analysis
+- Integration model comparisons
+- Response surface visualization
+- Temporal integration effects
+- Model parameter sensitivity
+
 ## Quick Start
 
 1. Set parameters in the GUI or programmatically:
@@ -43,8 +61,28 @@ main_simulation
 │
 └───utilities/
 plot_results.m % Results visualization
+plot_fit_parameters.m % Parameter analysis plots
+fit_psychometric_curve.m % Curve fitting utilities
 gui_interface.m % GUI implementation
 ```
+
+## Analysis Features
+
+### Unimodal Analysis
+- Session-wise psychometric curve fitting
+- Parameter distribution analysis:
+  - Threshold (α)
+  - Slope (β)
+  - Guess Rate (γ)
+  - Lapse Rate (λ)
+- Cross-session comparisons
+- Statistical summaries
+
+### Multimodal Analysis
+- Integration model comparisons
+- Response surface visualization
+- Temporal integration effects
+- Model parameter sensitivity
 
 ## Testing
 
@@ -54,6 +92,7 @@ Run `test_simulation.m` to execute unit tests covering:
 - Temporal integration effects
 - Dynamic weight symmetry
 - Lapse rate verification
+- Parameter fitting accuracy
 
 ## Requirements
 
