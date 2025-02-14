@@ -47,23 +47,23 @@ main_simulation
 3. View results in the generated figures and saved data files in the `results` directory  
 
 ## Project Structure
-```
+```matlab
 /project_root
-
-│ main_simulation.m % Main entry point
-│ README.md % Documentation
+|
+│ main_simulation.m    % Main entry point
+│ README.md    % Documentation
 │
 ├───modules/
-│ run_multimodal_simulation.m % Core simulation engine
-│ unimodal_prob.m % Unimodal probability calculation
-│ integration_models.m % Multimodal integration algorithms
-│ simulate_trial.m % Single trial simulation
+│ run_multimodal_simulation.m    % Core simulation engine
+│ unimodal_prob.m    % Unimodal probability calculation
+│ integration_models.m    % Multimodal integration algorithms
+│ simulate_trial.m    % Single trial simulation
 │
 └───utilities/
-plot_results.m % Results visualization
-plot_fit_parameters.m % Parameter analysis plots
-fit_psychometric_curve.m % Curve fitting utilities
-gui_interface.m % GUI implementation
+plot_results.m    % Results visualization
+plot_fit_parameters.m    % Parameter analysis plots
+fit_psychometric_curve.m    % Curve fitting utilities
+gui_interface.m    % GUI implementation
 ```
 
 ## Analysis Features
