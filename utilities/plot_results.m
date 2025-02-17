@@ -135,7 +135,7 @@ function plot_unimodal_session(trial_data, params, session_num, fit_result, colo
     if ~isempty(fit_result) && isfield(fit_result, 'fit_success') && fit_result.fit_success
         x_fine = linspace(min(stim_levels), max(stim_levels), 100);
         y_fit = psychometric_function(x_fine, fit_result.alpha, fit_result.beta, ...
-            modal_params.guess_rate, modal_params.lapse_rate, modal_params.function_type);
+            fit_result.gamma, fit_result.lambda, modal_params.function_type);
         plot(x_fine, y_fit, '-', 'Color', color, 'LineWidth', 2);
         
         % Update title to include alpha and beta values
@@ -213,7 +213,7 @@ function plot_unimodal_summary(trial_data, params, session_colors)
         % Generate fitted curve points
         x_fit = linspace(min(stim_levels), max(stim_levels), 100);
         y_fit = psychometric_function(x_fit, fit_result.alpha, fit_result.beta, ...
-            modal_params.guess_rate, modal_params.lapse_rate, modal_params.function_type);
+            fit_result.gamma, fit_result.lambda, modal_params.function_type);
         
         % Plot fitted curve only (no data points)
         plot(x_fit, y_fit, '-', 'Color', session_colors(i,:), 'LineWidth', 1.5);
