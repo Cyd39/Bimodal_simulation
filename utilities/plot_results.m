@@ -135,7 +135,7 @@ function plot_unimodal_session(trial_data, params, session_num, fit_result, colo
     if ~isempty(fit_result) && isfield(fit_result, 'fit_success') && fit_result.fit_success
         x_fine = linspace(min(stim_levels), max(stim_levels), 100);
         y_fit = psychometric_function(x_fine, fit_result.alpha, fit_result.beta, ...
-            fit_result.gamma, fit_result.lambda, modal_params.function_type);
+            fit_result.gamma, fit_result.lambda, fit_result.function_type);
         plot(x_fine, y_fit, '-', 'Color', color, 'LineWidth', 2);
         
         % Update title to include alpha and beta values
@@ -213,7 +213,7 @@ function plot_unimodal_summary(trial_data, params, session_colors)
         % Generate fitted curve points
         x_fit = linspace(min(stim_levels), max(stim_levels), 100);
         y_fit = psychometric_function(x_fit, fit_result.alpha, fit_result.beta, ...
-            fit_result.gamma, fit_result.lambda, modal_params.function_type);
+            fit_result.gamma, fit_result.lambda, fit_result.function_type);
         
         % Plot fitted curve only (no data points)
         plot(x_fit, y_fit, '-', 'Color', session_colors(i,:), 'LineWidth', 1.5);
@@ -490,10 +490,15 @@ function [h_plot, legend_entry] = plot_fixed_intensity_curve(trial_data, varied_
     if sum(valid_idx) > 2
         try
             % Fit psychometric function
-            [x_fit, y_fit, gof, fitted_params] = fit_psychometric_curve(varied_levels(valid_idx), detection_rates(valid_idx));
+            fit_result = fit_psychometric_curve(varied_levels(valid_idx), detection_rates(valid_idx));
             
+            x_fit = linspace(min(varied_levels(valid_idx)), max(varied_levels(valid_idx)), 100);
+            y_fit = psychometric_function(x_fit, fit_result.alpha, fit_result.beta, ...
+                fit_result.gamma, fit_result.lambda, fit_result.function_type);
+    
+
             % Check fit quality
-            if gof.rsquare < 0.6  % If R² is less than 0.6, consider fit unsatisfactory
+            if fit_result.rsquare < 0.6  % If R² is less than 0.6, consider fit unsatisfactory
                 % Use line connection
                 [sorted_x, sort_idx] = sort(varied_levels(valid_idx));
                 sorted_y = detection_rates(valid_idx(sort_idx));
@@ -501,7 +506,7 @@ function [h_plot, legend_entry] = plot_fixed_intensity_curve(trial_data, varied_
                     'Color', color, 'LineWidth', 1.5, 'MarkerSize', 6);
                 
                 legend_entry = sprintf('%s = %.1f (poor fit, R²=%.2f)', ...
-                    upper(fixed_modality(1)), fixed_intensity, gof.rsquare);
+                    upper(fixed_modality(1)), fixed_intensity, fit_result.rsquare);
             else
                 % Plot data points and fitted curve
                 h_data = plot(varied_levels(valid_idx), detection_rates(valid_idx), ...
@@ -511,7 +516,7 @@ function [h_plot, legend_entry] = plot_fixed_intensity_curve(trial_data, varied_
                 h_plot = [h_data; h_fit];
                 legend_entry = sprintf('%s = %.1f (α=%.2f, R²=%.3f)', ...
                     upper(fixed_modality(1)), fixed_intensity, ...
-                    fitted_params.alpha, gof.rsquare);
+                    fit_result.alpha, fit_result.rsquare);
             end
         catch ME
             warning(ME.identifier, '%s', ME.message);
@@ -525,35 +530,6 @@ function [h_plot, legend_entry] = plot_fixed_intensity_curve(trial_data, varied_
                 upper(fixed_modality(1)), fixed_intensity);
         end
     end
-end
-
-function [x_fit, y_fit, gof, fitted_params] = fit_psychometric_curve(x_data, y_data)
-    % Prepare for fitting
-    ft = fittype('gamma + (1-gamma-lambda)/(1 + exp(-beta*(x-alpha)))', ...
-        'independent', 'x', ...
-        'coefficients', {'alpha', 'beta', 'gamma', 'lambda'});
-    
-    % Set fitting options
-    opts = fitoptions(ft);
-    opts.StartPoint = [mean(x_data), 1, 0.1, 0.02];
-    min_y = min(y_data);
-    opts.Lower = [min(x_data), 0.1, max(0, min_y-0.1), 0];
-    opts.Upper = [max(x_data), 10, min(1, min_y+0.3), 0.2];
-    
-    % Execute fitting
-    [fitted_curve, gof] = fit(x_data(:), y_data(:), ft, opts);
-    
-    % Get fitting parameters
-    fitted_params = coeffvalues(fitted_curve);
-    fitted_params = struct(...
-        'alpha', fitted_params(1), ...
-        'beta', fitted_params(2), ...
-        'gamma', fitted_params(3), ...
-        'lambda', fitted_params(4));
-    
-    % Generate fitted curve points
-    x_fit = linspace(min(x_data), max(x_data), 100);
-    y_fit = fitted_curve(x_fit);
 end
 
 function plot_heatmaps_and_surfaces(trial_data, params, vib_levels, aud_levels, model_types)
@@ -680,57 +656,6 @@ function RdBu = define_colormap()
     RdBu = zeros(64, 3);
     for i = 1:3
         RdBu(:,i) = interp1(x_old, RdBu_base(:,i), x_new, 'pchip');
-    end
-end
-
-function fit_result = fit_psychometric(x_data, y_data, modal_params)
-    % Initialize fit result structure
-    fit_result = struct(...
-        'alpha', NaN, ...
-        'beta', NaN, ...
-        'gamma', modal_params.guess_rate, ...
-        'lambda', modal_params.lapse_rate, ...
-        'rsquare', 0, ...
-        'fit_success', false);
-    
-    try
-        % Set up fitting options
-        ft = fittype('gamma + (1-gamma-lambda)/(1 + exp(-beta*(x-alpha)))', ...
-            'independent', 'x', ...
-            'coefficients', {'alpha', 'beta', 'gamma', 'lambda'});
-        
-        opts = fitoptions(ft);
-        opts.StartPoint = [mean(x_data), 1, modal_params.guess_rate, modal_params.lapse_rate];
-        opts.Lower = [min(x_data), 0.1, 0, 0];
-        opts.Upper = [max(x_data), 10, 1, 0.2];
-        
-        % Perform the fit
-        [fitted_curve, gof] = fit(x_data(:), y_data(:), ft, opts);
-        
-        % Extract parameters
-        coeffs = coeffvalues(fitted_curve);
-        fit_result.alpha = coeffs(1);  % threshold
-        fit_result.beta = coeffs(2);   % slope
-        fit_result.gamma = coeffs(3);  % guess rate
-        fit_result.lambda = coeffs(4); % lapse rate
-        fit_result.rsquare = gof.rsquare;
-        fit_result.fit_success = true;
-        
-    catch ME
-        warning('PsychometricFit:FitFailed', '%s. Using simple estimates.', ME.message);
-        
-        % Estimate threshold as the stimulus level where response rate is closest to 0.5
-        [~, thresh_idx] = min(abs(y_data - 0.5));
-        fit_result.alpha = x_data(thresh_idx);
-        
-        % Estimate slope using difference around threshold
-        if thresh_idx > 1 && thresh_idx < length(x_data)
-            slope_est = (y_data(thresh_idx+1) - y_data(thresh_idx-1)) / ...
-                (x_data(thresh_idx+1) - x_data(thresh_idx-1));
-            fit_result.beta = max(0.1, min(10, slope_est * 4));
-        else
-            fit_result.beta = 1;
-        end
     end
 end
 
