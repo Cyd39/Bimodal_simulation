@@ -1,0 +1,125 @@
+function plot_thero_inte_model(experiment_info)
+    % Plot theoretical heatmap and surface for integration model
+    % Inputs:
+    %   experiment_info: Structure containing experiment information
+    
+    % Extract model parameters and modality name
+    model_params = experiment_info.params;  % model_params 从 experiment_info.params 中提取
+    modality_name = experiment_info.params.modality;  % modality_name 从 experiment_info.params.modality 中提取
+    
+    % Add guess_rate and lapse_rate to model_params
+    if isfield(experiment_info.params, 'vibration')
+        model_params.guess_rate = experiment_info.params.vibration.guess_rate;
+        model_params.lapse_rate = experiment_info.params.vibration.lapse_rate;
+    elseif isfield(experiment_info.params, 'auditory')
+        model_params.guess_rate = experiment_info.params.auditory.guess_rate;
+        model_params.lapse_rate = experiment_info.params.auditory.lapse_rate;
+    else
+        error('Missing required fields: vibration or auditory parameters');
+    end
+
+    % Define stimulus intensity range
+    stim_levels = linspace(0, 10, 1000);
+    
+    % Create grid for plotting
+    [X, Y] = meshgrid(stim_levels, stim_levels);
+    
+    % Check if selected_models is a cell array or a character vector
+    if iscell(experiment_info.params.selected_models)
+        model_types = experiment_info.params.selected_models;  % 如果是元胞数组，直接使用
+    else
+        model_types = {experiment_info.params.selected_models};  % 如果是字符向量，转换为元胞数组
+    end
+    
+    % Loop through each model type
+    for k = 1:length(model_types)
+        model_type = model_types{k};  % 获取当前模型类型
+        Z = zeros(size(X));  % 初始化 Z 矩阵
+        
+        % Calculate theoretical detection rates using integration_models
+        for i = 1:size(X,1)
+            for j = 1:size(X,2)
+                % Calculate unimodal probabilities
+                P_vib = unimodal_prob(X(i,j), experiment_info.params.vibration);
+                P_aud = unimodal_prob(Y(i,j), experiment_info.params.auditory);
+                
+                % Calculate integrated probability using integration_models
+                Z(i,j) = integration_models(P_vib, P_aud, model_type, model_params);
+            end
+        end
+        
+        % Create figure window for the current model type
+        figure('Name', sprintf('Theoretical %s Integration - %s', modality_name, model_type), ...
+               'Position', [100 100 1200 500]);
+        
+        % 1. Left subplot: Heatmap
+        subplot(1,2,1);
+        imagesc(stim_levels, stim_levels, Z);
+        colormap(define_colormap());
+        colorbar;
+        axis xy;
+        xlabel('Vibrotactile Intensity');
+        ylabel('Auditory Intensity');
+        title(sprintf('%s - Theoretical Response Rate (%s)', modality_name, model_type), 'Interpreter', 'none');
+        
+        % 2. Right subplot: 3D surface
+        subplot(1,2,2);
+        
+        % Create denser grid for smooth interpolation
+        [Xq, Yq] = meshgrid(linspace(min(stim_levels), max(stim_levels), 50), ...
+                           linspace(min(stim_levels), max(stim_levels), 50));
+        
+        % Use interpolation to generate smooth surface data
+        Zq = interp2(X, Y, Z, Xq, Yq, 'cubic');
+        
+        % Plot smooth 3D surface
+        surf(Xq, Yq, Zq);
+        colormap(define_colormap());
+        colorbar;
+        
+        % Set 3D surface display properties
+        shading interp;
+        lighting gouraud;
+        material([0.6 0.9 0.2]);
+        camlight('headlight');
+        
+        % Set figure properties
+        xlabel('Vibrotactile Intensity');
+        ylabel('Auditory Intensity');
+        zlabel('Response Rate');
+        title(sprintf('%s - Theoretical 3D View (%s)', modality_name, model_type), 'Interpreter', 'none');
+        view(45, 30);
+        grid on;
+        
+        % Set axis range
+        xlim([min(stim_levels) max(stim_levels)]);
+        ylim([min(stim_levels) max(stim_levels)]);
+        zlim([0 1.2]);
+    end
+end
+
+% 定义 define_colormap 函数
+function RdBu = define_colormap()
+    % Define RdBu colormap base points
+    RdBu_base = [
+        0.019608 0.188235 0.380392  % Deep blue
+        0.129412 0.400000 0.674510
+        0.262745 0.576471 0.764706
+        0.572549 0.772549 0.870588
+        0.819608 0.898039 0.941176
+        0.968627 0.968627 0.968627  % White midpoint
+        0.992157 0.858824 0.780392
+        0.956863 0.647059 0.509804
+        0.839216 0.376471 0.301961
+        0.698039 0.094118 0.168627
+        0.403922 0.000000 0.121569  % Deep red
+    ];
+    
+    % Generate smoother color transitions
+    x_old = linspace(0, 1, size(RdBu_base, 1));
+    x_new = linspace(0, 1, 64);
+    RdBu = zeros(64, 3);
+    for i = 1:3
+        RdBu(:,i) = interp1(x_old, RdBu_base(:,i), x_new, 'pchip');
+    end
+end
