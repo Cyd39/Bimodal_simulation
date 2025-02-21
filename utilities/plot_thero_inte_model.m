@@ -18,21 +18,27 @@ function plot_thero_inte_model(experiment_info)
         error('Missing required fields: vibration or auditory parameters');
     end
 
+    % Define all available integration models
+    model_types = {'linear_sum', 'probability_sum', 'bayesian_optimal', ...
+                   'winner_take_all', 'dynamic_weight'};
+    
     % Define stimulus intensity range
     stim_levels = linspace(0, 10, 1000);
     
     % Create grid for plotting
     [X, Y] = meshgrid(stim_levels, stim_levels);
     
-    % Check if selected_models is a cell array or a character vector
-    if iscell(experiment_info.params.selected_models)
-        model_types = experiment_info.params.selected_models;  % 如果是元胞数组，直接使用
-    else
-        model_types = {experiment_info.params.selected_models};  % 如果是字符向量，转换为元胞数组
-    end
+    % Create a single full-screen figure
+    figure('Name', sprintf('Theoretical %s Integration Models', modality_name), ...
+           'Units', 'normalized', ...
+           'Position', [0.02 0.05 0.96 0.85]);  % Almost full screen
+
+    % Calculate subplot layout
+    n_models = length(model_types);
+    n_rows = ceil(n_models/2);  % 每两个模型一行
     
     % Loop through each model type
-    for k = 1:length(model_types)
+    for k = 1:n_models
         model_type = model_types{k};  % 获取当前模型类型
         Z = zeros(size(X));  % 初始化 Z 矩阵
         
@@ -48,22 +54,22 @@ function plot_thero_inte_model(experiment_info)
             end
         end
         
-        % Create figure window for the current model type
-        figure('Name', sprintf('Theoretical %s Integration - %s', modality_name, model_type), ...
-               'Position', [100 100 1200 500]);
+        % Calculate subplot positions
+        row = ceil(k/2);
+        col_offset = mod(k-1, 2) * 2;
         
         % 1. Left subplot: Heatmap
-        subplot(1,2,1);
+        subplot(n_rows, 4, (row-1)*4 + col_offset + 1);
         imagesc(stim_levels, stim_levels, Z);
         colormap(define_colormap());
         colorbar;
         axis xy;
         xlabel('Vibrotactile Intensity');
         ylabel('Auditory Intensity');
-        title(sprintf('%s - Theoretical Response Rate (%s)', modality_name, model_type), 'Interpreter', 'none');
+        title(sprintf('%s (%s)', modality_name, model_type), 'Interpreter', 'none');
         
         % 2. Right subplot: 3D surface
-        subplot(1,2,2);
+        subplot(n_rows, 4, (row-1)*4 + col_offset + 2);
         
         % Create denser grid for smooth interpolation
         [Xq, Yq] = meshgrid(linspace(min(stim_levels), max(stim_levels), 50), ...
@@ -96,6 +102,15 @@ function plot_thero_inte_model(experiment_info)
         ylim([min(stim_levels) max(stim_levels)]);
         zlim([0 1.2]);
     end
+    
+    % Adjust subplot spacing
+    set(gcf, 'Units', 'normalized');
+    pos = get(gcf, 'Position');
+    set(gcf, 'Position', [pos(1) pos(2) pos(3) pos(4)]);
+    set(gcf, 'Color', 'white');
+    
+    % Add more space between subplots
+    set(gcf, 'DefaultAxesPosition', [0.1, 0.1, 0.8, 0.8]);
 end
 
 % 定义 define_colormap 函数
