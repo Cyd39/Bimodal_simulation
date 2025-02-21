@@ -2,6 +2,7 @@ function plot_results(trial_data, params)
     % Check if input parameters are from a loaded file
     if isstruct(trial_data) && isfield(trial_data, 'experiment_info')
         % If loaded from file, extract relevant data
+        experiment_info = trial_data;  % Store the complete experiment_info
         params = trial_data.experiment_info.params;
         trial_data = trial_data.experiment_info.trial_data;
     end
@@ -97,8 +98,14 @@ function plot_results(trial_data, params)
             end
             
         case 'multimodal'
-            % For multimodal experiment with single session, call original function
-            plot_multimodal_results(trial_data, params);
+            % For multimodal experiment with single session
+            if exist('experiment_info', 'var')
+                plot_multimodal_results(trial_data, params, experiment_info);
+            else
+                % Create experiment_info structure for direct simulation results
+                experiment_info = struct('params', params, 'trial_data', trial_data);
+                plot_multimodal_results(trial_data, params, experiment_info);
+            end
     end
 end
 
@@ -316,7 +323,7 @@ function colors = distinguishable_colors(n)
     end
 end
 
-function plot_multimodal_results(trial_data, params)
+function plot_multimodal_results(trial_data, params, experiment_info)
     % Get stimulus intensity range and model type
     stim_matrix = cell2mat({trial_data.Stimulus}');
     vib_levels = unique(stim_matrix(:,1));
@@ -328,6 +335,9 @@ function plot_multimodal_results(trial_data, params)
     
     % 2. Plot cross-modal psychometric functions
     plot_cross_modal_curves(trial_data, params, vib_levels, aud_levels, model_types);
+    
+    % After plotting experimental results, plot theoretical curves
+    plot_thero_inte_model(experiment_info);
 end
 
 function plot_cross_modal_curves(trial_data, params, vib_levels, aud_levels, model_types)
